@@ -44,6 +44,10 @@ function! s:filetype()
 	let s:end	= '#'
 	let s:fill	= '*'
 
+        if &filetype ==# 'python' || l:f =~ '\.py$'
+                let s:length = 79
+        endif
+	
 	for type in keys(s:types)
 		if l:f =~ type
 			let s:start	= s:types[type][0]
