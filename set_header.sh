@@ -21,9 +21,9 @@ then
     echo "export MAIL" >> ~/.zshrc
 fi
 
-mkdir -p ~/.vim/plugin
+mkdir -p ~/.vim/after/plugin
 
 # Add stdheader to vim plugins
-cp plugin/stdheader.vim ~/.vim/plugin/
+cp plugin/stdheader.vim ~/.vim/after/plugin/
 
 echo 'Now reload your shell by running "source ~/.zshrc" or "exec zsh", or the equivalent for your shell.'
