@@ -1,3 +1,14 @@
+" Remove its autocommands
+augroup stdheader
+        autocmd!
+augroup END
+
+" Remove its command
+silent! delcommand Stdheader
+
+" Remove its mapping (F1)
+silent! nunmap <F1>
+
 let s:asciiart = [
 			\"        :::      ::::::::",
 			\"      :+:      :+:    :+:",
@@ -125,6 +136,22 @@ function! s:date()
 	return strftime("%Y/%m/%d %H:%M:%S")
 endfunction
 
+function! s:insert_python_prelude()
+	if s:filename() !~ '\.py$'
+		return
+	endif
+
+	" Insert in reverse order (append(0) pushes down)
+	if get(g:, 'stdheader_pyencoding',1)
+		call append(0, '# -*- coding: utf-8 -*-')
+	endif
+
+	if get(g:, 'stdheader_pyshebang', 1)
+		let l:interp = get(g:, 'stdheader_python_interpreter', 'python3')
+		call append(0, '#!/usr/bin/env ' . l:interp)
+	endif
+endfunction
+
 function! s:insert()
 	let l:line = 11
 
@@ -136,22 +163,40 @@ function! s:insert()
 		call append(0, s:line(l:line))
 		let l:line = l:line - 1
 	endwhile
+	call s:insert_python_prelude()
+endfunction
+
+function! s:is_updated_line(lnum)
+	return getline(a:lnum) =~#
+		\ '^' . escape(s:start, '/*#') .
+		\ repeat(' ', s:margin - strlen(s:start)) .
+		\ 'Updated: '
+endfunction
+
+function! s:find_updated_line()
+	let l:max = min([line('$'), 20]) " header never exceeds this
+	for lnum in range(1, l:max)
+		if s:is_updated_line(lnum)
+			return lnum
+		endif
+	endfor
+	return -1
 endfunction
 
 function! s:update()
 	call s:filetype()
-	if getline(9) =~ s:start . repeat(' ', s:margin - strlen(s:start)) . "Updated: "
-		if &mod
-			if s:not_rebasing()
-				call setline(9, s:line(9))
-			endif
-		endif
-		if s:not_rebasing()
-			call setline(4, s:line(4))
-		endif
-		return 0
+
+	let l:uline = s:find_updated_line()
+	if l:uline < 0
+		return 1
 	endif
-	return 1
+
+	if &mod && s:not_rebasing()
+		call setline(l:uline, s:line(9))   " reuse formatting
+		call setline(l:uline - 5, s:line(4)) " filename line
+	endif
+
+	return 0
 endfunction
 
 function! s:stdheader()
@@ -197,6 +242,11 @@ endfunction
 
 command! Stdheader call s:stdheader ()
 map <F1> :Stdheader<CR>
+
+command! -nargs=1 StdheaderPyEncoding
+	\ let g:stdheader_pyencoding = <args>
+command! -nargs=1 StdheaderPyShebang
+	\ let g:stdheader_pyshebang = <args>
 
 augroup stdheader
 	autocmd!
