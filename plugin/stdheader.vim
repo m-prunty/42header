@@ -174,7 +174,7 @@ function! s:is_updated_line(lnum)
 endfunction
 
 function! s:find_updated_line()
-	let l:max = min([line('$'), 20]) " header never exceeds this
+	let l:max = min([line('$'), 15]) " header never exceeds this
 	for lnum in range(1, l:max)
 		if s:is_updated_line(lnum)
 			return lnum
