@@ -1,14 +1,3 @@
-" Remove its autocommands
-augroup stdheader
-        autocmd!
-augroup END
-
-" Remove its command
-silent! delcommand Stdheader
-
-" Remove its mapping (F1)
-silent! nunmap <F1>
-
 let s:asciiart = [
 			\"        :::      ::::::::",
 			\"      :+:      :+:    :+:",
@@ -55,10 +44,10 @@ function! s:filetype()
 	let s:end	= '#'
 	let s:fill	= '*'
 
-        if &filetype ==# 'python' || l:f =~ '\.py$'
-                let s:length = 79
-        endif
-	
+	if &filetype ==# 'python' || l:f =~ '\.py$'
+		let s:length = 79
+	endif
+
 	for type in keys(s:types)
 		if l:f =~ type
 			let s:start	= s:types[type][0]
@@ -142,7 +131,7 @@ function! s:insert_python_prelude()
 	endif
 
 	" Insert in reverse order (append(0) pushes down)
-	if get(g:, 'stdheader_pyencoding',1)
+	if get(g:, 'stdheader_pyencoding', 0)
 		call append(0, '# -*- coding: utf-8 -*-')
 	endif
 
@@ -166,16 +155,30 @@ function! s:insert()
 	call s:insert_python_prelude()
 endfunction
 
+function! s:find_header_start()
+	for lnum in range(1, min([line('$'), 50]))
+		if getline(lnum) =~# '^' . escape(s:start, '/*#') . ' .*' 
+					\. escape(s:end, '*/#')
+			return lnum
+		endif
+	endfor
+	return -1
+endfunction
+
 function! s:is_updated_line(lnum)
 	return getline(a:lnum) =~#
-		\ '^' . escape(s:start, '/*#') .
-		\ repeat(' ', s:margin - strlen(s:start)) .
-		\ 'Updated: '
+				\ '^' . escape(s:start, '/*#') .
+				\ repeat(' ', s:margin - strlen(s:start)) .
+				\ 'Updated: '
 endfunction
 
 function! s:find_updated_line()
-	let l:max = min([line('$'), 15]) " header never exceeds this
-	for lnum in range(1, l:max)
+	let l:start = s:find_header_start()
+	if l:start < 0
+		return -1
+	endif
+
+	for lnum in range(l:start, l:start + 15)
 		if s:is_updated_line(lnum)
 			return lnum
 		endif
@@ -186,15 +189,24 @@ endfunction
 function! s:update()
 	call s:filetype()
 
+	let l:hstart = s:find_header_start()
+	if l:hstart < 0
+		return 1
+	endif
+
 	let l:uline = s:find_updated_line()
 	if l:uline < 0
 		return 1
 	endif
 
-	if &mod && s:not_rebasing()
-		call setline(l:uline, s:line(9))   " reuse formatting
-		call setline(l:uline - 5, s:line(4)) " filename line
+	if &mod
+		if s:not_rebasing()
+			call setline(l:uline, s:line(9))   " reuse formatting
+		endif
 	endif
+	if s:not_rebasing()
+		call setline(l:hstart + 3, s:line(4)) " filename line
+	endif	
 
 	return 0
 endfunction
@@ -217,7 +229,7 @@ function! s:fix_merge_conflict()
 			let l:line = l:line + 1
 		endwhile
 		echo "42header conflicts automatically resolved!"
-	exe ":12,15d"
+		exe ":12,15d"
 
 	" fix conflict on both 'Created:' and 'Updated:' (unlikely, but useful in case)
 	elseif getline(8) =~ "<<<<<<<" && getline(11) =~ "=======" && getline(14) =~ ">>>>>>>" && getline(10) =~ l:checkline
@@ -227,7 +239,7 @@ function! s:fix_merge_conflict()
 			let l:line = l:line + 1
 		endwhile
 		echo "42header conflicts automatically resolved!"
-	exe ":12,16d"
+		exe ":12,16d"
 	endif
 endfunction
 
@@ -244,9 +256,9 @@ command! Stdheader call s:stdheader ()
 map <F1> :Stdheader<CR>
 
 command! -nargs=1 StdheaderPyEncoding
-	\ let g:stdheader_pyencoding = <args>
+			\ let g:stdheader_pyencoding = <args>
 command! -nargs=1 StdheaderPyShebang
-	\ let g:stdheader_pyshebang = <args>
+			\ let g:stdheader_pyshebang = <args>
 
 augroup stdheader
 	autocmd!
