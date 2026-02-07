@@ -3,19 +3,20 @@
 
 # Set variables
 
-if [ ! -z "$USER" ]
+
+if ! alias USER >/dev/null 2>&1 && [ -z "${USER+x}" ];
 then
     echo "USER=`/usr/bin/whoami`" >> ~/.zshrc
     echo "export USER" >> ~/.zshrc
 fi
 
-if [ ! -z "$GROUP" ]
+if ! alias GROUP >/dev/null 2>&1 && [ -z "${GROUP+x}" ];
 then
     echo "GROUP=`/usr/bin/id -gn $user`" >> ~/.zshrc
     echo "export GROUP" >> ~/.zshrc
 fi
 
-if [ ! -z "$MAIL" ]
+if ! alias MAIL >/dev/null 2>&1 && [ -z "${MAIL+x}" ];
 then
     echo "MAIL="$USER@student.42.fr"" >> ~/.zshrc
     echo "export MAIL" >> ~/.zshrc
